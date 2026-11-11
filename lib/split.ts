@@ -63,7 +63,7 @@ export function computeShares(split: Pick<Split, "items" | "charges" | "friends"
     const base = item.qty > 1 ? `${item.qty}× ${item.name}` : item.name;
     for (const id of who) {
       sub[id] += each;
-      labels[id].push(who.length > 1 ? `${FRACTION[who.length] || `1/${who.length}`} ${base}` : base);
+      labels[id].push(who.length > 1 ? `${FRACTION[who.length] || `1/${who.length}`} of ${base}` : base);
     }
   }
 

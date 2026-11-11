@@ -62,9 +62,9 @@ export default function SplitStatus() {
           <span style={{ width: `${shares.length ? (paid / shares.length) * 100 : 0}%`, background: allPaid ? "#0B120D" : undefined }} />
         </div>
 
-        <div style={{ display: "grid", gap: 12, marginTop: 22 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 12, marginTop: 22 }}>
           {shares.map((s) => (
-            <div key={s.id} style={{ border: "2px solid #0B120D", borderRadius: 22, padding: 14, background: "#fff" }}>
+            <div key={s.id} style={{ border: "2px solid #0B120D", borderRadius: 22, padding: 14, background: "#fff", minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <Avatar name={s.name} color={s.color} paid={s.status === "paid"} dashed={s.status !== "paid"} />
                 <div style={{ flex: 1, minWidth: 0 }}>

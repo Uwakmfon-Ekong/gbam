@@ -128,8 +128,8 @@ ok("shared items + proportional tax sum back to the bill", () => {
   assert.equal(unassigned.length, 0);
   const sum = shares.reduce((s, x) => s + x.totalNgn, 0);
   assert.ok(Math.abs(sum - DEMO_RECEIPT.total) < 0.05, `sum ${sum}`);
-  assert.ok(shares[0].labels.includes("⅓ Suya platter"));
-  assert.ok(shares[0].labels.includes("½ 2× Chapman"));
+  assert.ok(shares[0].labels.includes("⅓ of Suya platter"));
+  assert.ok(shares[0].labels.includes("½ of 2× Chapman"));
   assert.equal(shares[0].usd, Math.round((shares[0].totalNgn / 1500) * 100) / 100);
 });
 
