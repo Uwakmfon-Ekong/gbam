@@ -6,14 +6,39 @@ import {
   FeeBumpTransaction,
   Horizon,
   Keypair,
+  rpc,
   Transaction,
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
-import { ASSET_CODE, ASSET_ISSUER, HORIZON_URL, NETWORK_PASSPHRASE } from "./config";
+import { ASSET_CODE, ASSET_ISSUER, HORIZON_URL, NETWORK_PASSPHRASE, SOROBAN_RPC_URL } from "./config";
 import { feeBump } from "./txbuilders";
+import { isSorobanTx } from "./soroban";
+import type { GiftMode } from "./types";
 
 export const PASSPHRASE = NETWORK_PASSPHRASE;
 export const horizon = new Horizon.Server(HORIZON_URL);
+export const sorobanRpc = new rpc.Server(SOROBAN_RPC_URL);
+
+/** Which gift engine new gifts use. Flip to "contract" once `npm run proof:contract` passes. */
+export function giftMode(): GiftMode {
+  const m = process.env.GIFT_MODE || process.env.NEXT_PUBLIC_GIFT_MODE;
+  return m === "contract" ? "contract" : "classic";
+}
+
+export function giftContractId(): string {
+  const id = process.env.GIFT_CONTRACT_ID;
+  if (!id) throw new AppError("Server is missing GIFT_CONTRACT_ID. Run `npm run deploy:contract`.", 500);
+  return id;
+}
+
+/** Simulate a contract call so it carries resource fees + auth. */
+export async function prepareSoroban(tx: Transaction): Promise<Transaction> {
+  try {
+    return await sorobanRpc.prepareTransaction(tx);
+  } catch (e) {
+    throw new AppError(friendlySorobanError(e), 400);
+  }
+}
 
 export function sponsor(): Keypair {
   const s = process.env.SPONSOR_SECRET;
@@ -97,6 +122,7 @@ export function decodeTx(xdr: string): Transaction {
 
 /** Fee-bump (unless the sponsor is already the source) and submit. Returns the hash. */
 export async function submit(tx: Transaction): Promise<string> {
+  if (isSorobanTx(tx)) return submitSoroban(tx);
   const sp = sponsor();
   const envelope = tx.source === sp.publicKey() ? tx : feeBump(tx, sp, PASSPHRASE);
   try {
@@ -127,4 +153,34 @@ export function friendlyHorizonError(e: unknown): string {
   if (codes.transaction === "tx_too_late") return "Took too long to confirm. Please try again.";
   if (codes.transaction === "tx_insufficient_fee") return "Network is busy. Please try again.";
   return `Payment failed (${[codes.transaction, ...ops].filter(Boolean).join(", ")})`;
+}
+
+async function submitSoroban(tx: Transaction): Promise<string> {
+  const fb = feeBump(tx, sponsor(), PASSPHRASE);
+  const sent = await sorobanRpc.sendTransaction(fb);
+  if (sent.status === "ERROR") throw new AppError(friendlySorobanError(sent.errorResult?.toXDR("base64") || "send failed"));
+  if (sent.status === "TRY_AGAIN_LATER") throw new AppError("Network is busy. Please try again.");
+  const res = await sorobanRpc.pollTransaction(sent.hash, { attempts: 30, sleepStrategy: () => 1000 });
+  if (res.status !== "SUCCESS") throw new AppError(res.status === "NOT_FOUND" ? "Still confirming. Refresh in a moment." : "The contract rejected this. Try again.");
+  return sent.hash;
+}
+
+/** Gift-escrow contract errors (see contracts/gift-escrow) + common SAC/auth failures. */
+export function friendlySorobanError(e: unknown): string {
+  const m = String((e as Error)?.message ?? e);
+  const code = /Error\(Contract, #(\d+)\)/.exec(m)?.[1];
+  const ours: Record<string, string> = {
+    "1": "This gift link was already used.",
+    "2": "This gift was already claimed or taken back.",
+    "3": "This gift expired. Ask the sender to send it again.",
+    "4": "You can take it back once the time is up.",
+    "5": "Amount must be more than zero.",
+    "6": "Invalid gift window.",
+    "10": "Not enough money in your Gbam for this.",
+  };
+  if (code && ours[code]) return ours[code];
+  if (/Crypto/.test(m)) return "This link doesn't match the gift. Ask the sender to share it again.";
+  if (/trustline|TrustLine/i.test(m)) return "This wallet isn't set up to receive money yet.";
+  if (/balance/i.test(m)) return "Not enough money in your Gbam for this.";
+  return "The gift contract said no. Try again.";
 }

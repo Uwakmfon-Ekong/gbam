@@ -28,6 +28,27 @@ Then:
 
 > Without Supabase the app uses in-memory storage. That works for `npm run dev` on one laptop, **not** on Vercel.
 
+## Soroban gift escrow contract (optional, recommended for the pitch)
+
+`contracts/gift-escrow` is our own Soroban smart contract for gifts:
+
+- `create(sender, link, amount, window)` locks USDC.
+- `claim(link, to, sig)` pays out only if the **link key signed the receiver's address**, so a stolen claim can't be redirected.
+- `refund(link)` lets the sender take it back after the window.
+
+Unlike claimable balances, it leaves no throwaway account behind, and it already works for C… smart-wallet addresses.
+
+```bash
+npm run test:contract          # 7 Rust tests, incl. a check that JS and Rust sign the same bytes
+cd contracts && stellar contract build && cd ..   # needs the Stellar CLI + wasm32v1-none target
+npm run deploy:contract        # wraps test USDC in its SAC, uploads + deploys, writes GIFT_CONTRACT_ID
+npm run proof:contract         # create → claim → 5s refund, live on testnet
+```
+
+When `proof:contract` prints ✅, set `GIFT_MODE=contract` (locally and in Vercel). New gifts then go through the contract, and old classic gifts keep working. If anything misbehaves on stage, set it back to `classic`.
+
+If `deploy:contract` fails with a protocol/version error, change `soroban-sdk` in `contracts/Cargo.toml` to the version that matches testnet's protocol and rebuild.
+
 ## Deploy (Vercel)
 
 1. Push to GitHub, import in Vercel.
@@ -91,5 +112,6 @@ scripts/proof.ts       end-to-end on-chain proof
 - **Leftover link-key accounts.** Stellar won't merge an account in the same ledger it was created (`ACCOUNT_MERGE_SEQNUM_TOO_FAR`), so each claim leaves an empty sponsored account (~1 XLM of sponsor reserve). A cleanup job could merge them later.
 - **Testnet test-USDC.** The asset is issued by our own testnet issuer, not Circle's, so we can mint for the demo.
 - **Fixed FX rate** for Split (`NEXT_PUBLIC_NGN_PER_USD`).
+- **No naira cash-out yet.** Claimed money stays in the receiver's Gbam as test USDC, and we show the ≈₦ value. Production cash-out would go through a licensed Stellar anchor (SEP-24) into a Nigerian bank account.
 - **Device-mode wallets** (no PRF support) are lost if the browser storage is cleared.
 - **Live status uses polling** (every 2s), not websockets. That's enough for a demo.

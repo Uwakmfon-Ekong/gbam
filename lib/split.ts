@@ -85,6 +85,9 @@ export const fmtUsd = (n: number | string) => {
   return "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+/** "$10.00" → "₦15,000" using the demo rate. Display only — balances stay in USDC. */
+export const usdToNgnLabel = (usd: number | string, rate: number) => fmtNgn(Math.round(Number(usd) * rate));
+
 export const FRIEND_COLORS = ["#FFD93D", "#C9F5DA", "#FFC2D4", "#B9D7FF", "#FFB27A", "#D9C2FF", "#12E26B"];
 
 /** Clean demo receipt — loads instantly if the AI or the network fails on stage. */

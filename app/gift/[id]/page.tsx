@@ -8,7 +8,7 @@ import { fmtCountdown, useNow, usePoll } from "@/lib/hooks";
 import { giftLink, whatsappUrl } from "@/lib/local";
 import { api, signAndSubmit, type Prepared } from "@/lib/api";
 import { fmtUsd } from "@/lib/split";
-import { EXPLORER_TX } from "@/lib/config";
+import { EXPLORER_CONTRACT, EXPLORER_TX } from "@/lib/config";
 import type { Gift } from "@/lib/types";
 
 export default function GiftStatus() {
@@ -135,7 +135,12 @@ export default function GiftStatus() {
         )}
         {gift.createTx && (
           <a href={EXPLORER_TX(gift.createTx)} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: 18, textAlign: "center", fontSize: 13, fontWeight: 700, color: "#5B6B60", textDecoration: "underline" }}>
-            Locked on Stellar. View transaction
+            {gift.mode === "contract" ? "Locked in the Gbam escrow contract. View transaction" : "Locked on Stellar. View transaction"}
+          </a>
+        )}
+        {gift.mode === "contract" && gift.contractId && (
+          <a href={EXPLORER_CONTRACT(gift.contractId)} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: 6, textAlign: "center", fontSize: 13, fontWeight: 700, color: "#5B6B60", textDecoration: "underline" }}>
+            See the contract
           </a>
         )}
       </div>

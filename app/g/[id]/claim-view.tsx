@@ -7,8 +7,9 @@ import { SignInBlock } from "@/components/signin-card";
 import { useWallet } from "@/components/wallet-context";
 import { api, signAndSubmit, type Prepared } from "@/lib/api";
 import { usePoll } from "@/lib/hooks";
-import { fmtUsd } from "@/lib/split";
-import { EXPLORER_TX } from "@/lib/config";
+import { fmtUsd, usdToNgnLabel } from "@/lib/split";
+import { EXPLORER_CONTRACT, EXPLORER_TX, NGN_PER_USD } from "@/lib/config";
+import { signClaim } from "@/lib/soroban";
 import type { Gift } from "@/lib/types";
 import type { SavedWallet } from "@/lib/wallet";
 
@@ -49,8 +50,17 @@ export default function ClaimView({ id }: { id: string }) {
     setPhase("claiming");
     try {
       const kp = await key();
-      const r = await api<{ prepared: Prepared }>(`/api/gifts/${id}/claim`, { receiver: w.pub });
-      const res = await signAndSubmit<{ hash: string }>(r.prepared, kp, linkKey as Keypair);
+      const lk = linkKey as Keypair;
+      let res: { hash: string };
+      if (gift!.mode === "contract") {
+        // The link key signs "pay this gift to <my address>"; the escrow contract checks it on-chain.
+        const sig = signClaim(lk, w.pub);
+        const r = await api<{ prepared: Prepared }>(`/api/gifts/${id}/claim`, { receiver: w.pub, sig });
+        res = await signAndSubmit<{ hash: string }>(r.prepared, kp);
+      } else {
+        const r = await api<{ prepared: Prepared }>(`/api/gifts/${id}/claim`, { receiver: w.pub });
+        res = await signAndSubmit<{ hash: string }>(r.prepared, kp, lk);
+      }
       setTx(res.hash);
       setPhase("done");
       gbamFx();
@@ -71,9 +81,17 @@ export default function ClaimView({ id }: { id: string }) {
           </div>
           <div className="claimed-pop" style={{ marginTop: 26, fontSize: 80, lineHeight: 1, fontWeight: 800, letterSpacing: "-0.06em" }}>Gbam.</div>
           <div style={{ marginTop: 12, fontSize: 22, fontWeight: 700 }}>{fmtUsd(gift.amount)} is yours.</div>
+          <div style={{ marginTop: 4, fontSize: 15, fontWeight: 700, opacity: 0.8 }}>
+            About {usdToNgnLabel(gift.amount, NGN_PER_USD)}. It&apos;s safe in your Gbam, held as digital dollars.
+          </div>
           {tx && (
             <a href={EXPLORER_TX(tx)} target="_blank" rel="noreferrer" style={{ marginTop: 10, fontSize: 13, fontWeight: 700, textDecoration: "underline" }}>
               Settled on Stellar in seconds
+            </a>
+          )}
+          {gift.mode === "contract" && gift.contractId && (
+            <a href={EXPLORER_CONTRACT(gift.contractId)} target="_blank" rel="noreferrer" style={{ marginTop: 4, fontSize: 13, fontWeight: 700, textDecoration: "underline" }}>
+              Released by the Gbam escrow contract
             </a>
           )}
           <div style={{ display: "grid", gap: 10, marginTop: 34, width: "100%", maxWidth: 340 }}>
@@ -111,7 +129,9 @@ export default function ClaimView({ id }: { id: string }) {
       <div className="app-card slide-in">
         <div style={{ fontSize: 15, fontWeight: 700, color: "#5B6B60" }}>You got a gift</div>
         <div style={{ marginTop: 6, fontSize: "clamp(72px,22vw,96px)", lineHeight: 1, fontWeight: 800, letterSpacing: "-0.06em" }}>{fmtUsd(gift.amount)}</div>
-        <div style={{ marginTop: 8, fontSize: 18, fontWeight: 700 }}>from {gift.senderName}</div>
+        <div style={{ marginTop: 8, fontSize: 18, fontWeight: 700 }}>
+          from {gift.senderName} <span style={{ color: "#5B6B60" }}>· ≈ {usdToNgnLabel(gift.amount, NGN_PER_USD)}</span>
+        </div>
 
         {gift.message && (
           <div style={{ marginTop: 26, background: "#FFD93D", border: "2px solid #0B120D", borderRadius: 24, padding: 20, position: "relative" }}>

@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useWallet } from "./wallet-context";
-import { fmtUsd } from "@/lib/split";
+import { fmtUsd, usdToNgnLabel } from "@/lib/split";
+import { NGN_PER_USD } from "@/lib/config";
 
 export const CheckIcon = ({ size = 18, color = "#0B120D", w = 3 }: { size?: number; color?: string; w?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -123,7 +124,9 @@ export function AppShell({ children, wide }: { children: React.ReactNode; wide?:
             <div className="slide-in" style={{ position: "absolute", right: 0, top: "calc(100% + 10px)", zIndex: 20, width: 280, background: "#fff", border: "2px solid #0B120D", borderRadius: 24, padding: 16, boxShadow: "6px 6px 0 #0B120D" }}>
               <div className="label">Signed in as</div>
               <div style={{ fontWeight: 800, fontSize: 18, marginTop: 4 }}>{wallet.name}</div>
-              <div style={{ fontSize: 13, color: "#5B6B60", fontWeight: 600, marginTop: 4 }}>
+              <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.04em", marginTop: 10 }}>{balance == null ? "…" : fmtUsd(balance)}</div>
+              {balance != null && <div style={{ fontSize: 13, fontWeight: 700, color: "#5B6B60" }}>≈ {usdToNgnLabel(balance, NGN_PER_USD)}</div>}
+              <div style={{ fontSize: 13, color: "#5B6B60", fontWeight: 600, marginTop: 8 }}>
                 {wallet.mode === "passkey" ? "🔐 Secured by your passkey" : "📱 Saved on this device only"}
               </div>
               <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
@@ -139,6 +142,9 @@ export function AppShell({ children, wide }: { children: React.ReactNode; wide?:
                 >
                   {busy ? <Spinner /> : "+ Add $25 test money"}
                 </button>
+                <div style={{ border: "2px dashed #0B120D", borderRadius: 16, padding: "10px 12px", fontSize: 13, fontWeight: 700, lineHeight: 1.4, color: "#3A4A3F" }}>
+                  Cash out to your bank in naira: coming soon, through a licensed Stellar anchor.
+                </div>
                 <button
                   className="chip"
                   onClick={() => {

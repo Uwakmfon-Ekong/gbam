@@ -10,3 +10,5 @@ export const NGN_PER_USD = Number(process.env.NEXT_PUBLIC_NGN_PER_USD || 1500);
 export const GIFT_EXPIRY_SECONDS = Number(process.env.NEXT_PUBLIC_GIFT_EXPIRY_SECONDS || 86400);
 export const EXPLORER_TX = (hash: string) => `https://stellar.expert/explorer/testnet/tx/${hash}`;
 export const EXPLORER_ACCOUNT = (id: string) => `https://stellar.expert/explorer/testnet/account/${id}`;
+export const SOROBAN_RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL || "https://soroban-testnet.stellar.org";
+export const EXPLORER_CONTRACT = (id: string) => `https://stellar.expert/explorer/testnet/contract/${id}`;

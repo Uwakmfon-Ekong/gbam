@@ -8,7 +8,10 @@
     "start": "next start",
     "setup:stellar": "node scripts/setup.mjs",
     "proof": "node --no-warnings --experimental-strip-types scripts/proof.ts",
-    "test": "node --no-warnings --experimental-strip-types scripts/test-offline.ts"
+    "test": "node --no-warnings --experimental-strip-types scripts/test-offline.ts",
+    "deploy:contract": "node --no-warnings --experimental-strip-types scripts/deploy-contract.ts",
+    "proof:contract": "node --no-warnings --experimental-strip-types scripts/proof-contract.ts",
+    "test:contract": "cd contracts && cargo test"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "^17.4.0",

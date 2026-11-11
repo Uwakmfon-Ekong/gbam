@@ -1,13 +1,18 @@
 export type GiftStatus = "pending" | "active" | "claimed" | "reclaimed";
 
+export type GiftMode = "classic" | "contract";
+
 export type Gift = {
   id: string;
+  /** classic = Stellar claimable balance; contract = Gbam's Soroban escrow contract */
+  mode?: GiftMode;
+  contractId?: string;
   sender: string;
   senderName: string;
   amount: string; // "10.00" USDC
   message: string;
   linkPub: string; // public key of the throwaway "link key"; its secret only lives in the link #fragment
-  balanceId: string;
+  balanceId?: string; // classic mode only
   status: GiftStatus;
   createdAt: number;
   expiresAt: number; // ms; after this the sender can take it back
@@ -21,7 +26,7 @@ export type Gift = {
 /** What the public claim page is allowed to see. */
 export type PublicGift = Pick<
   Gift,
-  "id" | "senderName" | "amount" | "message" | "status" | "expiresAt" | "linkPub" | "claimedAt" | "claimTx"
+  "id" | "mode" | "senderName" | "amount" | "message" | "status" | "expiresAt" | "linkPub" | "claimedAt" | "claimTx"
 >;
 
 export type ReceiptItem = { id: string; name: string; qty: number; price: number }; // price = line total in NGN
