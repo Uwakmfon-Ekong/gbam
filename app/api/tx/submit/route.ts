@@ -23,7 +23,7 @@ export const POST = route(async (req) => {
       await patch<Gift>("gift", i.giftId, { status: "reclaimed", reclaimTx: hash });
       break;
     case "share_pay":
-      await patch<Share>("share", i.shareId, { status: "paid", paidBy: i.from, paidAt: Date.now(), tx: hash });
+      await patch<Share>("share", i.shareId, { status: "paid", method: "gbam", paidBy: i.from, paidAt: Date.now(), tx: hash });
       break;
   }
   return { hash };

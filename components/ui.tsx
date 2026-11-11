@@ -164,7 +164,7 @@ export function AppShell({ children, wide }: { children: React.ReactNode; wide?:
         {children}
       </main>
       <div className="wrap" style={{ width: "100%", paddingBottom: 24, textAlign: "center", fontSize: 13, fontWeight: 600, color: "#5B6B60" }}>
-        Gbam runs on Stellar testnet. Test money only.
+        Gbam runs on Stellar testnet. Test money only. · <Link href="/check" style={{ textDecoration: "underline" }}>Status</Link>
       </div>
     </div>
   );

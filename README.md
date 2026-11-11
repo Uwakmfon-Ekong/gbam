@@ -73,6 +73,15 @@ If `deploy:contract` fails with a protocol/version error, change `soroban-sdk` i
 
 Every user transaction is built by the server, signed on the device, and verified against an HMAC token before the sponsor fee-bumps it (`app/api/tx/submit`). The sponsor can't be tricked into paying for arbitrary transactions.
 
+## Extras worth knowing
+
+- **`/check`**: a pre-demo status page with sponsor XLM and USDC float, database, Claude key, whether the gift contract is live, and demo settings. Open it on the venue Wi-Fi before you pitch. It's linked as "Status" in the footer.
+- **Gift sharing**: WhatsApp, the phone's own share sheet, copy link, a **QR code** for handing a gift to a judge in person, and a gift card image.
+- **Split**: **Nudge** sends a friendly WhatsApp reminder. The bill payer can **mark a friend as paid in cash or transfer**. Receipt photos can come from the camera or the gallery.
+- **WhatsApp previews** for both gift links and pay links (`/g/[id]` and `/p/[id]` preview images).
+- **≈ ₦ everywhere money shows** (demo rate), plus an honest "cash-out coming soon" note.
+- **Add to Home Screen** works (`manifest.webmanifest`). Opening Gbam from the home screen on stage looks like a native app.
+
 ## Demo-day checklist
 
 - [ ] Set `NEXT_PUBLIC_GIFT_EXPIRY_SECONDS=120` in Vercel and redeploy, so "Take it back" can be shown live.
@@ -80,7 +89,7 @@ Every user transaction is built by the server, signed on the device, and verifie
 - [ ] Test on 2 real phones: iPhone Safari + Android Chrome. Also open a link **from inside WhatsApp**.
 - [ ] Pre-make a sender wallet on the demo phone and tap **+ Add $25 test money** in the menu.
 - [ ] Record a backup video of the full flow.
-- [ ] `/api/health` is all green on the production URL.
+- [ ] `/check` is all green on the production URL.
 
 ## 3-minute demo script
 

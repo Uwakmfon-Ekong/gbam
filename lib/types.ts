@@ -61,6 +61,7 @@ export type Share = {
   amountNgn: number;
   amountUsd: string; // "4.20"
   status: "unpaid" | "paid";
+  method?: "gbam" | "cash"; // cash = the payer marked it settled outside Gbam
   paidBy?: string;
   paidAt?: number;
   tx?: string;

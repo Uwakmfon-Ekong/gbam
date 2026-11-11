@@ -2,20 +2,20 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AppShell, CheckIcon, Confetti, ErrorBox, gbamFx, Spinner, WhatsAppIcon } from "@/components/ui";
+import { AppShell, CheckIcon, Confetti, ErrorBox, gbamFx, Spinner } from "@/components/ui";
+import { ShareTools } from "@/components/share-tools";
 import { useWallet } from "@/components/wallet-context";
 import { fmtCountdown, useNow, usePoll } from "@/lib/hooks";
-import { giftLink, whatsappUrl } from "@/lib/local";
+import { giftLink } from "@/lib/local";
 import { api, signAndSubmit, type Prepared } from "@/lib/api";
-import { fmtUsd } from "@/lib/split";
-import { EXPLORER_CONTRACT, EXPLORER_TX } from "@/lib/config";
+import { fmtUsd, usdToNgnLabel } from "@/lib/split";
+import { EXPLORER_CONTRACT, EXPLORER_TX, NGN_PER_USD } from "@/lib/config";
 import type { Gift } from "@/lib/types";
 
 export default function GiftStatus() {
   const { id } = useParams<{ id: string }>();
   const { wallet, key, refreshBalance } = useWallet();
   const [link, setLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { data, error: loadErr, reload } = usePoll<{ gift: Gift; now: number }>(`/api/gifts/${id}`, 2000);
@@ -55,15 +55,6 @@ export default function GiftStatus() {
     }
   }
 
-  async function copy() {
-    if (!link) return;
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {}
-  }
-
   if (gift.status === "claimed")
     return (
       <AppShell>
@@ -96,6 +87,7 @@ export default function GiftStatus() {
           </span>
         </div>
         <div style={{ marginTop: 20, fontSize: "clamp(64px,18vw,88px)", lineHeight: 1, fontWeight: 800, letterSpacing: "-0.06em" }}>{fmtUsd(gift.amount)}</div>
+        <div style={{ marginTop: 4, fontSize: 15, fontWeight: 700, color: "#5B6B60" }}>≈ {usdToNgnLabel(gift.amount, NGN_PER_USD)}</div>
         {gift.message && <div style={{ marginTop: 8, fontSize: 17, fontWeight: 700, color: "#3A4A3F" }}>&ldquo;{gift.message}&rdquo;</div>}
 
         {gift.status === "reclaimed" ? (
@@ -116,10 +108,7 @@ export default function GiftStatus() {
           <div style={{ display: "grid", gap: 12, marginTop: 22 }}>
             {link ? (
               <>
-                <a className="btn btn-green btn-block" href={whatsappUrl(shareText)} target="_blank" rel="noreferrer">
-                  <WhatsAppIcon /> Share on WhatsApp
-                </a>
-                <button className="btn btn-ghost btn-block" onClick={copy}>{copied ? "Copied ✓" : "Copy link"}</button>
+                <ShareTools link={link} text={shareText} cardUrl={`/g/${id}/opengraph-image`} title={`${gift.senderName} sent you ${fmtUsd(gift.amount)}`} />
                 <div style={{ fontSize: 13, fontWeight: 600, color: "#5B6B60", lineHeight: 1.45, textAlign: "center" }}>
                   Anyone with this link can claim it, like cash. Only send it to the person it&apos;s for.
                 </div>

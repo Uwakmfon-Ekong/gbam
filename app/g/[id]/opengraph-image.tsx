@@ -13,17 +13,17 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   const amount = g ? fmtUsd(g.amount) : "A gift";
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", background: "#FFD93D", padding: 64, fontFamily: "sans-serif" }}>
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", width: "100%", border: "6px solid #0B120D", borderRadius: 48, background: "#fff", padding: 56, boxShadow: "16px 16px 0 #0B120D" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", background: "#FFD93D", padding: 48, fontFamily: "sans-serif" }}>
+        <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", width: "100%", border: "6px solid #0B120D", borderRadius: 48, background: "#fff", padding: "44px 56px", boxShadow: "16px 16px 0 #0B120D" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 44, fontWeight: 800 }}>
             <div style={{ width: 64, height: 64, borderRadius: 64, background: "#12E26B", border: "5px solid #0B120D", display: "flex" }} />
             Gbam
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ fontSize: 40, fontWeight: 700, color: "#3A4A3F" }}>{g ? `${g.senderName} sent you` : "You got"}</div>
-            <div style={{ fontSize: 200, fontWeight: 800, letterSpacing: -10, lineHeight: 1 }}>{amount}</div>
+            <div style={{ fontSize: 36, fontWeight: 700, color: "#3A4A3F" }}>{g ? `${g.senderName} sent you` : "You got"}</div>
+            <div style={{ fontSize: 150, fontWeight: 800, letterSpacing: -4, lineHeight: 1.1 }}>{amount}</div>
           </div>
-          <div style={{ display: "flex", alignSelf: "flex-start", background: "#12E26B", border: "5px solid #0B120D", borderRadius: 999, padding: "16px 40px", fontSize: 40, fontWeight: 800 }}>
+          <div style={{ display: "flex", alignSelf: "flex-start", background: "#12E26B", border: "5px solid #0B120D", borderRadius: 999, height: 84, padding: "0 40px", alignItems: "center", fontSize: 38, fontWeight: 800 }}>
             Tap to claim
           </div>
         </div>

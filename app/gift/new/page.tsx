@@ -6,8 +6,8 @@ import { AppShell, ArrowIcon, ErrorBox, GiftIcon, Spinner } from "@/components/u
 import { SignInBlock } from "@/components/signin-card";
 import { useWallet } from "@/components/wallet-context";
 import { api, signAndSubmit, type Prepared } from "@/lib/api";
-import { fmtUsd } from "@/lib/split";
-import { GIFT_EXPIRY_SECONDS } from "@/lib/config";
+import { fmtUsd, usdToNgnLabel } from "@/lib/split";
+import { GIFT_EXPIRY_SECONDS, NGN_PER_USD } from "@/lib/config";
 import { saveGiftLink } from "@/lib/local";
 
 const PRESETS = [5, 10, 20, 50];
@@ -100,6 +100,7 @@ export default function NewGift() {
             onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, "").slice(0, 6))}
           />
         </div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#1F2A22", minHeight: 20 }}>{valid ? `≈ ${usdToNgnLabel(n, NGN_PER_USD)}` : " "}</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
           {PRESETS.map((p) => (
             <button key={p} className={`chip ${Number(amount) === p ? "on" : ""}`} onClick={() => setAmount(String(p))}>

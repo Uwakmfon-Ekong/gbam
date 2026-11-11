@@ -4,13 +4,17 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AppShell, Avatar, CheckIcon, Confetti, ErrorBox, gbamFx, Spinner, WhatsAppIcon } from "@/components/ui";
 import { usePoll } from "@/lib/hooks";
+import { useWallet } from "@/components/wallet-context";
+import { api } from "@/lib/api";
 import { whatsappUrl } from "@/lib/local";
 import { fmtNgn, fmtUsd } from "@/lib/split";
 import type { Share, Split } from "@/lib/types";
 
 export default function SplitStatus() {
   const { id } = useParams<{ id: string }>();
-  const { data, error } = usePoll<{ split: Split; shares: Share[] }>(`/api/splits/${id}`, 2000);
+  const { data, error, reload } = usePoll<{ split: Split; shares: Share[] }>(`/api/splits/${id}`, 2000);
+  const { wallet } = useWallet();
+  const [actionErr, setActionErr] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
   const prevPaid = useRef<number | null>(null);
@@ -29,12 +33,28 @@ export default function SplitStatus() {
   if (!data) return <AppShell><div className="app-card" style={{ display: "grid", placeItems: "center", minHeight: 300 }}><Spinner /></div></AppShell>;
 
   const { split } = data;
-  const collected = shares.filter((s) => s.status === "paid").reduce((a, s) => a + Number(s.amountUsd), 0);
+  const collected = shares.filter((s) => s.status === "paid" && s.method !== "cash").reduce((a, s) => a + Number(s.amountUsd), 0);
+  const isPayer = wallet?.pub === split.payer;
   const due = shares.reduce((a, s) => a + Number(s.amountUsd), 0);
 
   const message = (s: Share) =>
     `Hey ${s.name} 👋 your share${split.merchant ? ` from ${split.merchant}` : ""} is ${fmtNgn(s.amountNgn)} (≈ ${fmtUsd(s.amountUsd)})` +
     `${s.items.length ? ` for ${s.items.slice(0, 3).join(", ")}${s.items.length > 3 ? "…" : ""}` : ""}.\n\nPay in one tap 👉 ${origin}/p/${s.id}`;
+
+  const nudge = (s: Share) =>
+    `Small reminder 😅 ${s.name}, your ${fmtNgn(s.amountNgn)}${split.merchant ? ` for ${split.merchant}` : ""} is still open. ` +
+    `One tap, no fees 👉 ${origin}/p/${s.id}`;
+
+  async function markCash(s: Share) {
+    if (!wallet || !confirm(`Mark ${s.name}'s ${fmtNgn(s.amountNgn)} as paid in cash or transfer?`)) return;
+    setActionErr(null);
+    try {
+      await api(`/api/shares/${s.id}/cash`, { payer: wallet.pub });
+      await reload();
+    } catch (e) {
+      setActionErr((e as Error).message);
+    }
+  }
 
   async function copy(s: Share) {
     try {
@@ -81,20 +101,32 @@ export default function SplitStatus() {
                   <span style={{ width: 22, height: 22, borderRadius: "50%", background: "#12E26B", border: "2px solid #0B120D", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                     <CheckIcon size={12} w={4} />
                   </span>
-                  Paid
+                  {s.method === "cash" ? "Paid outside Gbam" : "Paid"}
                 </div>
               ) : (
-                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  <a className="btn btn-green btn-sm" style={{ flex: 1 }} href={whatsappUrl(message(s))} target="_blank" rel="noreferrer">
-                    <WhatsAppIcon size={18} /> Send
-                  </a>
-                  <button className="btn btn-ghost btn-sm" onClick={() => copy(s)}>{copied === s.id ? "Copied ✓" : "Copy"}</button>
-                </div>
+                <>
+                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                    <a className="btn btn-green btn-sm" style={{ flex: 1, padding: "0 12px" }} href={whatsappUrl(message(s))} target="_blank" rel="noreferrer">
+                      <WhatsAppIcon size={18} /> Send
+                    </a>
+                    <a className="btn btn-yellow btn-sm" style={{ padding: "0 14px" }} href={whatsappUrl(nudge(s))} target="_blank" rel="noreferrer">Nudge</a>
+                    <button className="btn btn-ghost btn-sm" style={{ padding: "0 14px" }} onClick={() => copy(s)}>{copied === s.id ? "✓" : "Copy"}</button>
+                  </div>
+                  {isPayer && (
+                    <button
+                      onClick={() => markCash(s)}
+                      style={{ marginTop: 10, background: "none", border: "none", padding: 0, font: "inherit", fontSize: 13, fontWeight: 700, color: "#5B6B60", textDecoration: "underline", cursor: "pointer" }}
+                    >
+                      Paid you in cash or transfer? Mark as paid
+                    </button>
+                  )}
+                </>
               )}
             </div>
           ))}
         </div>
 
+        {actionErr && <div style={{ marginTop: 12 }}><ErrorBox error={actionErr} /></div>}
         <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginTop: 18, fontSize: 13, fontWeight: 700, color: "#3A4A3F" }}>
           {!allPaid && <span className="dot-live" />}
           {allPaid ? <Link href="/split/new" style={{ textDecoration: "underline" }}>Split another bill</Link> : "Updates live as friends pay"}

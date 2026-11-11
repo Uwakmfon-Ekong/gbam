@@ -15,6 +15,7 @@ export default function ScanBill() {
   const router = useRouter();
   const { wallet, loaded } = useWallet();
   const fileRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -113,10 +114,16 @@ export default function ScanBill() {
                 <circle cx="12" cy="13" r="3.5" />
               </svg>
               <span style={{ fontWeight: 800, fontSize: 18 }}>{busy || "Take a photo of the bill"}</span>
-              <span style={{ fontWeight: 600, fontSize: 13, color: "#5B6B60" }}>or upload one from your gallery</span>
+              <span style={{ fontWeight: 600, fontSize: 13, color: "#5B6B60" }}>opens your camera</span>
+            </button>
+          )}
+          {!reading && (
+            <button className="chip" disabled={!!busy} onClick={() => galleryRef.current?.click()} style={{ marginTop: 12, justifySelf: "center", alignSelf: "center" }}>
+              Upload from gallery
             </button>
           )}
           <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => onFile(e.target.files?.[0])} />
+          <input ref={galleryRef} type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
         </div>
 
         <div style={{ display: "grid", gap: 12, marginTop: 18 }}>
