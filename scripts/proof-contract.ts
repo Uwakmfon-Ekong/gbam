@@ -1,9 +1,9 @@
 // End-to-end proof of the Soroban gift escrow on testnet, using the app's own builders.
 // Same story as `npm run proof`, but gifts go through our contract instead of claimable balances.
-// Run: npm run proof:contract   (after deploy:contract)
+// Run: npm run proof:contract   (after deploy:contract). Needs only $4 in the sponsor, and returns it at the end.
 import fs from "node:fs";
 import { Account, Asset, Horizon, Keypair, Networks, rpc, Transaction, TransactionBuilder } from "@stellar/stellar-sdk";
-import { buildActivate, buildFaucet } from "../lib/txbuilders.ts";
+import { buildActivate, buildFaucet, buildPayment } from "../lib/txbuilders.ts";
 import { buildContractClaim, buildContractCreate, buildContractRefund, signClaim } from "../lib/soroban.ts";
 
 const env: Record<string, string> = Object.fromEntries(
@@ -53,15 +53,15 @@ for (const k of [sender, receiver]) {
   await classic(tx, `activate ${k.publicKey().slice(0, 6)}`);
 }
 {
-  const tx = buildFaucet({ sponsorAccount: await load(sponsor.publicKey()), userPub: sender.publicKey(), asset: usdc, amount: "15", passphrase: P });
+  const tx = buildFaucet({ sponsorAccount: await load(sponsor.publicKey()), userPub: sender.publicKey(), asset: usdc, amount: "4", passphrase: P });
   tx.sign(sponsor);
-  await classic(tx, "faucet $15");
+  await classic(tx, "faucet $4");
 }
 
-console.log("2. Gift $10 into the escrow contract");
+console.log("2. Gift $3 into the escrow contract");
 const link = Keypair.random();
 await sorobanTx(
-  buildContractCreate({ senderAccount: await load(sender.publicKey()), contractId: C, linkPub: link.publicKey(), amount: "10", windowSeconds: 86400, passphrase: P }),
+  buildContractCreate({ senderAccount: await load(sender.publicKey()), contractId: C, linkPub: link.publicKey(), amount: "3", windowSeconds: 86400, passphrase: P }),
   sender,
   "create",
 );
@@ -74,14 +74,26 @@ await sorobanTx(
 );
 console.log("   receiver:", await bal(receiver.publicKey()), "USDC");
 
-console.log("4. Take-back: 5s gift, wait, refund");
+console.log("4. Take-back: $1 gift that expires in 5s, wait, refund");
 const link2 = Keypair.random();
 await sorobanTx(
-  buildContractCreate({ senderAccount: await load(sender.publicKey()), contractId: C, linkPub: link2.publicKey(), amount: "5", windowSeconds: 5, passphrase: P }),
+  buildContractCreate({ senderAccount: await load(sender.publicKey()), contractId: C, linkPub: link2.publicKey(), amount: "1", windowSeconds: 5, passphrase: P }),
   sender,
   "create 5s gift",
 );
 await new Promise((r) => setTimeout(r, 15000));
 await sorobanTx(buildContractRefund({ senderAccount: await load(sender.publicKey()), contractId: C, linkPub: link2.publicKey(), passphrase: P }), sender, "refund");
 console.log("   sender:", await bal(sender.publicKey()), "USDC");
+console.log("5. Return leftover USDC to the sponsor");
+for (const k of [sender, receiver]) {
+  const a = await horizon.loadAccount(k.publicKey());
+  const b = a.balances.find((x) => "asset_code" in x && x.asset_code === "USDC" && x.asset_issuer === usdc.getIssuer());
+  if (!b || Number(b.balance) <= 0) continue;
+  const tx = buildPayment({ fromAccount: new Account(a.accountId(), a.sequenceNumber()), toPub: sponsor.publicKey(), asset: usdc, amount: b.balance, passphrase: P });
+  tx.sign(k);
+  const fb = TransactionBuilder.buildFeeBumpTransaction(sponsor, "200", tx, P);
+  fb.sign(sponsor);
+  const r = await horizon.submitTransaction(fb);
+  console.log(`  ✓ return ${b.balance} USDC  https://stellar.expert/explorer/testnet/tx/${r.hash}`);
+}
 console.log(`\n✅ Soroban gift escrow works. https://stellar.expert/explorer/testnet/contract/${C}`);
