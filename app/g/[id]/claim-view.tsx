@@ -95,8 +95,8 @@ export default function ClaimView({ id }: { id: string }) {
             </a>
           )}
           <div style={{ display: "grid", gap: 10, marginTop: 34, width: "100%", maxWidth: 340 }}>
-            <Link href="/gift/new" className="btn btn-ink btn-block">Send one back</Link>
-            <Link href="/" className="btn btn-ghost btn-block">What is Gbam?</Link>
+            <Link href="/cashout" className="btn btn-ink btn-block">Cash out to my bank (₦)</Link>
+            <Link href="/gift/new" className="btn btn-ghost btn-block">Send one back</Link>
           </div>
         </div>
       </Shell>

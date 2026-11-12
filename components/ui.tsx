@@ -142,9 +142,9 @@ export function AppShell({ children, wide }: { children: React.ReactNode; wide?:
                 >
                   {busy ? <Spinner /> : "+ Add $25 test money"}
                 </button>
-                <div style={{ border: "2px dashed #0B120D", borderRadius: 16, padding: "10px 12px", fontSize: 13, fontWeight: 700, lineHeight: 1.4, color: "#3A4A3F" }}>
-                  Cash out to your bank in naira: coming soon, through a licensed Stellar anchor.
-                </div>
+                <Link href="/cashout" className="btn btn-ghost btn-sm" onClick={() => setMenu(false)} style={{ borderStyle: "dashed" }}>
+                  Cash out to bank (₦) <span style={{ fontSize: 11, background: "#FFD93D", border: "1.5px solid #0B120D", borderRadius: 99, padding: "1px 7px" }}>preview</span>
+                </Link>
                 <button
                   className="chip"
                   onClick={() => {
