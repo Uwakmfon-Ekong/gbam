@@ -40,11 +40,11 @@ export const GET = route(async () => {
       await get("profile", "healthcheck");
       return { ok: true, detail: "Supabase connected" };
     }),
-    safe("Receipt AI (Claude)", async () => ({
-      ok: !!process.env.ANTHROPIC_API_KEY,
-      warn: !process.env.ANTHROPIC_API_KEY,
-      detail: process.env.ANTHROPIC_API_KEY ? `Key set · ${process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5"}` : "No key. Only the demo receipt will work.",
-    })),
+    safe("Receipt AI", async () => {
+      if (process.env.ANTHROPIC_API_KEY) return { ok: true, detail: `Claude · ${process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5"}` };
+      if (process.env.GEMINI_API_KEY) return { ok: true, detail: `Gemini (free tier) · ${process.env.GEMINI_MODEL || "gemini-2.5-flash"}` };
+      return { ok: true, warn: true, detail: "No AI key. Only the demo receipt will work. Add a free GEMINI_API_KEY." };
+    }),
     safe(`Gift engine: ${mode === "contract" ? "Soroban escrow contract" : "classic claimable balances"}`, async () => {
       const id = process.env.GIFT_CONTRACT_ID;
       if (mode === "classic") return { ok: true, detail: id ? "Contract deployed but not switched on (GIFT_MODE=classic)." : "Using claimable balances." };

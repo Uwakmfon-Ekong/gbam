@@ -18,37 +18,65 @@ Keep item names short and human ("Jollof rice and chicken"). If the image is not
 
 type Raw = { merchant?: string; items?: { name?: string; qty?: unknown; price?: unknown }[]; tax?: unknown; service?: unknown; tip?: unknown; total?: unknown };
 
-export const POST = route(async (req) => {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) throw new AppError("AI reading isn't set up (missing ANTHROPIC_API_KEY). Use the demo receipt.", 503);
-  const { image } = await body<{ image: string }>(req);
-  const m = /^data:(image\/(?:jpeg|png|webp|gif));base64,(.+)$/.exec(image || "");
-  if (!m) throw new AppError("Send a photo of the receipt.");
-  if (m[2].length > 5_000_000) throw new AppError("Photo too large. Try again.");
+/** Which AI reads receipts: Claude if ANTHROPIC_API_KEY is set, otherwise Gemini (free tier) if GEMINI_API_KEY is set. */
+function receiptProvider(): "claude" | "gemini" | null {
+  if (process.env.ANTHROPIC_API_KEY) return "claude";
+  if (process.env.GEMINI_API_KEY) return "gemini";
+  return null;
+}
 
+async function askClaude(mime: string, data: string): Promise<string> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+    headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
       max_tokens: 2000,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "image", source: { type: "base64", media_type: m[1], data: m[2] } },
-            { type: "text", text: PROMPT },
-          ],
-        },
-      ],
+      messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mime, data } }, { type: "text", text: PROMPT }] }],
     }),
   });
   if (!res.ok) {
     console.error("Claude error", res.status, await res.text().catch(() => ""));
     throw new AppError("The AI couldn't read that one. Try again or use the demo receipt.", 502);
   }
-  const data = await res.json();
-  const text: string = (data.content || []).map((c: { text?: string }) => c.text || "").join("");
+  const out = await res.json();
+  return (out.content || []).map((c: { text?: string }) => c.text || "").join("");
+}
+
+async function askGemini(mime: string, data: string): Promise<string> {
+  // Try the configured model first, then fall back to other free-tier vision models.
+  const models = [process.env.GEMINI_MODEL, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"].filter(Boolean) as string[];
+  let last = "";
+  for (const model of [...new Set(models)]) {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY! },
+      body: JSON.stringify({
+        contents: [{ parts: [{ inline_data: { mime_type: mime, data } }, { text: PROMPT }] }],
+        generationConfig: { responseMimeType: "application/json", temperature: 0 },
+      }),
+    });
+    if (res.ok) {
+      const out = await res.json();
+      return (out.candidates?.[0]?.content?.parts || []).map((p: { text?: string }) => p.text || "").join("");
+    }
+    last = `${res.status} ${await res.text().catch(() => "")}`.slice(0, 300);
+    console.error("Gemini error", model, last);
+    if (res.status === 429) throw new AppError("Free AI limit reached for now. Wait a minute or use the demo receipt.", 429);
+    if (res.status !== 404 && res.status !== 400) break; // only try another model if this one doesn't exist
+  }
+  throw new AppError("The AI couldn't read that one. Try again or use the demo receipt.", 502);
+}
+
+export const POST = route(async (req) => {
+  const provider = receiptProvider();
+  if (!provider) throw new AppError("AI reading isn't set up (add a GEMINI_API_KEY or ANTHROPIC_API_KEY). Use the demo receipt.", 503);
+  const { image } = await body<{ image: string }>(req);
+  const m = /^data:(image\/(?:jpeg|png|webp|gif));base64,(.+)$/.exec(image || "");
+  if (!m) throw new AppError("Send a photo of the receipt.");
+  if (m[2].length > 5_000_000) throw new AppError("Photo too large. Try again.");
+
+  const text = provider === "claude" ? await askClaude(m[1], m[2]) : await askGemini(m[1], m[2]);
   const json = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
   let raw: Raw;
   try {
