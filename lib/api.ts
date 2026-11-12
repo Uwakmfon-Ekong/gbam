@@ -23,6 +23,17 @@ export async function signAndSubmit<T = { hash: string }>(p: Prepared, ...signer
   return api<T>("/api/tx/submit", { xdr, intent: p.intent, token: p.token });
 }
 
+/** "none" = no account yet, "missing" = account exists but doesn't trust the current USDC, "ok". */
+export async function trustState(pub: string): Promise<"none" | "missing" | "ok"> {
+  const r = await fetch(`${HORIZON_URL}/accounts/${pub}`, { cache: "no-store" });
+  if (r.status === 404) return "none";
+  if (!r.ok) return "ok"; // don't block on a flaky network
+  const a = await r.json();
+  return (a.balances || []).some((x: { asset_code?: string; asset_issuer?: string }) => x.asset_code === ASSET_CODE && x.asset_issuer === ASSET_ISSUER)
+    ? "ok"
+    : "missing";
+}
+
 /** USDC balance straight from Horizon (null = account not on-chain yet). */
 export async function fetchBalance(pub: string): Promise<number | null> {
   const r = await fetch(`${HORIZON_URL}/accounts/${pub}`, { cache: "no-store" });

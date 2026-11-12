@@ -63,7 +63,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                 },
                 {
-                  "bytes": "20d1690f141813130adcbe48cb90a9c01049a79efec82dbdf987d1d7fa5bbd6f"
+                  "bytes": "5951db78efca93230a9510911635147254d0b67df38350283aba2af7d6644f4c"
                 },
                 {
                   "i128": "1"
@@ -205,7 +205,7 @@
                     "symbol": "Gift"
                   },
                   {
-                    "bytes": "20d1690f141813130adcbe48cb90a9c01049a79efec82dbdf987d1d7fa5bbd6f"
+                    "bytes": "5951db78efca93230a9510911635147254d0b67df38350283aba2af7d6644f4c"
                   }
                 ]
               },

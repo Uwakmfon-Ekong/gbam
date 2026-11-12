@@ -19,9 +19,13 @@ const env = fs.existsSync(ENV)
     )
   : {};
 
+// --circle → use Circle's official testnet USDC (no minting; fill the sponsor from faucet.circle.com).
+const CIRCLE_TESTNET_USDC = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5";
+const CIRCLE = process.argv.includes("--circle");
 const sponsor = env.SPONSOR_SECRET ? Keypair.fromSecret(env.SPONSOR_SECRET) : Keypair.random();
-const issuer = env.ISSUER_SECRET ? Keypair.fromSecret(env.ISSUER_SECRET) : Keypair.random();
-const usdc = new Asset("USDC", issuer.publicKey());
+const issuer = CIRCLE ? null : env.ISSUER_SECRET ? Keypair.fromSecret(env.ISSUER_SECRET) : Keypair.random();
+const issuerPub = CIRCLE ? CIRCLE_TESTNET_USDC : issuer.publicKey();
+const usdc = new Asset("USDC", issuerPub);
 
 async function friendbot(pub) {
   try {
@@ -43,18 +47,23 @@ async function send(kp, ops) {
   return server.submitTransaction(tx);
 }
 
+console.log(`Using ${CIRCLE ? "Circle's official testnet USDC" : "Gbam's own test USDC"}`);
 console.log("1/3 Funding accounts with Friendbot…");
 await friendbot(sponsor.publicKey());
-await friendbot(issuer.publicKey());
+if (!CIRCLE) await friendbot(issuer.publicKey());
 
-console.log("2/3 Sponsor trusts test USDC…");
+console.log("2/3 Sponsor trusts USDC…");
 const sp = await server.loadAccount(sponsor.publicKey());
-const has = sp.balances.find((b) => b.asset_code === "USDC" && b.asset_issuer === issuer.publicKey());
+const has = sp.balances.find((b) => b.asset_code === "USDC" && b.asset_issuer === issuerPub);
 if (!has) await send(sponsor, [Operation.changeTrust({ asset: usdc })]);
 
-console.log("3/3 Minting 1,000,000 test USDC to sponsor…");
-if (!has || Number(has.balance) < 100000) {
-  await send(issuer, [Operation.payment({ destination: sponsor.publicKey(), asset: usdc, amount: "1000000" })]);
+if (CIRCLE) {
+  console.log("3/3 Skipping minting (Circle issues this token).");
+} else {
+  console.log("3/3 Minting 1,000,000 test USDC to sponsor…");
+  if (!has || Number(has.balance) < 100000) {
+    await send(issuer, [Operation.payment({ destination: sponsor.publicKey(), asset: usdc, amount: "1000000" })]);
+  }
 }
 
 const next = {
@@ -62,10 +71,10 @@ const next = {
   NEXT_PUBLIC_HORIZON_URL: env.NEXT_PUBLIC_HORIZON_URL || HORIZON,
   NEXT_PUBLIC_NETWORK_PASSPHRASE: Networks.TESTNET,
   NEXT_PUBLIC_ASSET_CODE: "USDC",
-  NEXT_PUBLIC_ASSET_ISSUER: issuer.publicKey(),
+  NEXT_PUBLIC_ASSET_ISSUER: issuerPub,
   SPONSOR_SECRET: sponsor.secret(),
-  ISSUER_SECRET: issuer.secret(),
-  FAUCET_AMOUNT: env.FAUCET_AMOUNT || "25",
+  ISSUER_SECRET: CIRCLE ? "" : issuer.secret(),
+  FAUCET_AMOUNT: CIRCLE ? (env.FAUCET_AMOUNT && env.FAUCET_AMOUNT !== "25" ? env.FAUCET_AMOUNT : "5") : env.FAUCET_AMOUNT || "25",
   NEXT_PUBLIC_NGN_PER_USD: env.NEXT_PUBLIC_NGN_PER_USD || "1500",
   NEXT_PUBLIC_GIFT_EXPIRY_SECONDS: env.NEXT_PUBLIC_GIFT_EXPIRY_SECONDS || "86400",
   ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY || "",
@@ -78,6 +87,12 @@ fs.writeFileSync(ENV, Object.entries(next).map(([k, v]) => `${k}=${v}`).join("\n
 console.log(`
 ✅ Done. Wrote ${ENV}
    Sponsor: https://stellar.expert/explorer/testnet/account/${sponsor.publicKey()}
-   Asset:   USDC:${issuer.publicKey()}
-
-Next: fill ANTHROPIC_API_KEY + SUPABASE_* in ${ENV}, then run  npm run proof`);
+   Asset:   USDC:${issuerPub}${CIRCLE ? " (Circle testnet)" : ""}
+${CIRCLE ? `
+👉 Fill the sponsor with Circle testnet USDC:
+   1. Open https://faucet.circle.com
+   2. Choose "USDC" and network "Stellar Testnet"
+   3. Paste this address and request tokens (repeat a few times for a demo float):
+      ${sponsor.publicKey()}
+` : ""}
+Next: npm run proof`);

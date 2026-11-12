@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { Keypair } from "@stellar/stellar-sdk";
-import { api, fetchBalance, signAndSubmit, type Prepared } from "@/lib/api";
+import { api, fetchBalance, signAndSubmit, trustState, type Prepared } from "@/lib/api";
 import { createWallet, getSaved, restoreWallet, signOut as wipe, unlock, type SavedWallet } from "@/lib/wallet";
 
 type Ctx = {
@@ -77,9 +77,24 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     await refreshBalance();
   }, [wallet, refreshBalance]);
 
+  // Unlock the key; if this wallet predates the current USDC asset, quietly add the trustline first.
+  const key = useCallback(async () => {
+    const kp = await unlock();
+    if (wallet && (await trustState(wallet.pub)) !== "ok") {
+      await activate(wallet, kp);
+      refreshBalance();
+    }
+    return kp;
+  }, [wallet, refreshBalance]);
+
+  const topUpSafe = useCallback(async () => {
+    if (wallet && (await trustState(wallet.pub)) !== "ok") await key();
+    await topUp();
+  }, [wallet, key, topUp]);
+
   const value = useMemo(
-    () => ({ loaded, wallet, balance, refreshBalance, signUp, restore, signOut, key: unlock, topUp }),
-    [loaded, wallet, balance, refreshBalance, signUp, restore, signOut, topUp],
+    () => ({ loaded, wallet, balance, refreshBalance, signUp, restore, signOut, key, topUp: topUpSafe }),
+    [loaded, wallet, balance, refreshBalance, signUp, restore, signOut, key, topUpSafe],
   );
   return <WalletCtx.Provider value={value}>{children}</WalletCtx.Provider>;
 }

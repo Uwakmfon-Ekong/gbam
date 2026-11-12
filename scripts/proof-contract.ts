@@ -53,9 +53,9 @@ for (const k of [sender, receiver]) {
   await classic(tx, `activate ${k.publicKey().slice(0, 6)}`);
 }
 {
-  const tx = buildFaucet({ sponsorAccount: await load(sponsor.publicKey()), userPub: sender.publicKey(), asset: usdc, amount: "20", passphrase: P });
+  const tx = buildFaucet({ sponsorAccount: await load(sponsor.publicKey()), userPub: sender.publicKey(), asset: usdc, amount: "15", passphrase: P });
   tx.sign(sponsor);
-  await classic(tx, "faucet $20");
+  await classic(tx, "faucet $15");
 }
 
 console.log("2. Gift $10 into the escrow contract");

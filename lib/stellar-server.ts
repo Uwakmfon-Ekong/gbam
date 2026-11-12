@@ -77,6 +77,12 @@ export async function accountExists(pub: string) {
   }
 }
 
+export async function hasTrustline(pub: string): Promise<boolean> {
+  const a = await horizon.loadAccount(pub);
+  const asset = usdc();
+  return a.balances.some((x) => "asset_code" in x && x.asset_code === asset.getCode() && x.asset_issuer === asset.getIssuer());
+}
+
 export async function usdcBalance(pub: string): Promise<number> {
   const a = await horizon.loadAccount(pub);
   const asset = usdc();

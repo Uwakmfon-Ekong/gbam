@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "setup:stellar": "node scripts/setup.mjs",
+    "setup:circle": "node scripts/setup.mjs --circle",
     "proof": "node --no-warnings --experimental-strip-types scripts/proof.ts",
     "test": "node --no-warnings --experimental-strip-types scripts/test-offline.ts",
     "deploy:contract": "node --no-warnings --experimental-strip-types scripts/deploy-contract.ts",

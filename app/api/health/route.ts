@@ -26,15 +26,22 @@ export const GET = route(async () => {
       const float = Number(
         a.balances.find((b) => "asset_code" in b && b.asset_code === asset.getCode() && b.asset_issuer === asset.getIssuer())?.balance || 0,
       );
-      const low = xlm < 100 || float < 500;
+      const low = xlm < 100 || float < 50;
       return {
         ok: xlm > 20,
         warn: low,
-        detail: `${xlm.toFixed(0)} XLM · ${float.toFixed(0)} test USDC${low ? " (low: re-run npm run setup:stellar)" : ""}`,
+        detail: `${xlm.toFixed(0)} XLM · ${float.toFixed(2)} USDC${low ? " (low: top up the sponsor)" : ""}`,
         link: EXPLORER_ACCOUNT(sp.publicKey()),
       };
     }),
-    safe("Test USDC asset", async () => ({ ok: !!ASSET_ISSUER, detail: ASSET_ISSUER ? `USDC:${ASSET_ISSUER.slice(0, 8)}…` : "NEXT_PUBLIC_ASSET_ISSUER missing" })),
+    safe("USDC asset", async () => ({
+      ok: !!ASSET_ISSUER,
+      detail: !ASSET_ISSUER
+        ? "NEXT_PUBLIC_ASSET_ISSUER missing"
+        : ASSET_ISSUER === "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
+          ? "Circle testnet USDC (official)"
+          : `Gbam test USDC · ${ASSET_ISSUER.slice(0, 8)}…`,
+    })),
     safe("Database", async () => {
       if (usingMemoryStore()) return { ok: false, warn: true, detail: "In-memory only. Fine on a laptop, breaks on Vercel. Add SUPABASE_* vars." };
       await get("profile", "healthcheck");

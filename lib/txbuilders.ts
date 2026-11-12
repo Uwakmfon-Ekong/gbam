@@ -39,6 +39,16 @@ export function buildActivate(opts: {
     .build();
 }
 
+/** Existing account, new asset (e.g. after switching to Circle USDC): add the trustline, reserve sponsored. */
+export function buildAddTrustline(opts: { sponsorAccount: Account; userPub: string; asset: Asset; passphrase: string }): Transaction {
+  const { sponsorAccount, userPub, asset, passphrase } = opts;
+  return builder(sponsorAccount, passphrase)
+    .addOperation(Operation.beginSponsoringFutureReserves({ sponsoredId: userPub }))
+    .addOperation(Operation.changeTrust({ asset, source: userPub }))
+    .addOperation(Operation.endSponsoringFutureReserves({ source: userPub }))
+    .build();
+}
+
 /** Sends test USDC from the sponsor/distributor. Stands in for a naira on-ramp. */
 export function buildFaucet(opts: {
   sponsorAccount: Account;

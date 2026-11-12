@@ -58,9 +58,9 @@ for (const k of [sender, receiver]) {
   await submit(tx, `activate ${k.publicKey().slice(0, 6)}`);
 }
 
-console.log("2. Faucet $20 to sender");
+console.log("2. Faucet $15 to sender");
 {
-  const tx = buildFaucet({ sponsorAccount: await load(sponsor.publicKey()), userPub: sender.publicKey(), asset: usdc, amount: "20", passphrase: P });
+  const tx = buildFaucet({ sponsorAccount: await load(sponsor.publicKey()), userPub: sender.publicKey(), asset: usdc, amount: "15", passphrase: P });
   tx.sign(sponsor);
   await submit(tx, "faucet");
 }
